@@ -29,19 +29,36 @@ def draw_title(stdscr, file1, file2):
 def draw_diff(stdscr, file1, file2):
     draw_title(stdscr, args.file1, args.file2)
 
-    for i, line in enumerate(file1.splitlines()):
-        lineNum = i + 1 
-        stdscr.addstr(i+4, 2, f'{lineNum:3} \u2502 {line}') 
-    for i, line in enumerate(file2.splitlines()):
-        width = curses.COLS // 2 + 6
+    file1_lines = file1.splitlines()
+    file2_lines = file2.splitlines()
+
+    # first we draw both files side by side
+    for i, (line1, line2) in enumerate(zip(file1_lines, file2_lines)):
         lineNum = i + 1
-        stdscr.addstr(i+4, width, f'{lineNum:3} \u2502 {line}')
-    # mid line
-    # for i in range(curses.LINES):
-    #    stdscr.addstr(i, curses.COLS // 2, '\u2502')
+
+        width = curses.COLS // 2 + 6
+
+        stdscr.addstr(i+4, 2, f'{lineNum:3} \u2502 {line1}') 
+        stdscr.addstr(i+4, width, f'{lineNum:3} \u2502 {line2}')
+        
+    # Updated line: RGB(255, 255, 204) or #FFFFCC
+    # Added line: RGB(214, 255, 214) or #D6FFD6
+    # Deleted line: RGB(255, 229, 229) or #FFE5E5
+
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+    # then we draw the differences
+    for i, (line1, line2) in enumerate(zip(file1_lines, file2_lines)):
+        if line1 != line2:
+            
+            stdscr.addstr(i+4, 0, ' ' * curses.COLS, curses.A_REVERSE | curses.color_pair(1) | curses.A_BOLD) 
+            stdscr.addstr(i+4, 0, f'{i+1:3} \u2502 {line1}', curses.A_REVERSE | curses.color_pair(1) | curses.A_BOLD)
+            stdscr.addstr(i+4, width, f'{i+1:3} \u2502 {line2}', curses.A_REVERSE | curses.color_pair(1) | curses.A_BOLD)
 
 def main(stdscr):
     stdscr.clear()
+
+    curses.curs_set(0)
 
     if not check_file(args.file1) or not check_file(args.file2):
         exit(1)

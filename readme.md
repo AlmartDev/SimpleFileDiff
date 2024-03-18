@@ -2,6 +2,8 @@
 Compare two files with this simple python script!
 No extra modules needed, just plain python!
 
+**WORK IN PROGRESS** some stuff might not work yet (most of it!)
+
 # Usage
 Make sure you have python and git installed!
 ```sh

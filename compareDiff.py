@@ -1,74 +1,89 @@
-import curses
+import os
 import argparse
 
-parser = argparse.ArgumentParser(
-                    prog='Simple File Diff',
-                    description='Easily compare between two files')
+screen_width = os.get_terminal_size().columns
 
-parser.add_argument('file1', help='The first file to compare')
-parser.add_argument('file2', help='The second file to compare')
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-args = parser.parse_args()
+def check_file(file_path):
+    return os.path.isfile(file_path)
 
-def check_file(file):
-    try:
-        with open(file, 'r') as f:
-            return True
-    except FileNotFoundError:
-        return False
+def read_file(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
 
-def read_file(file):
-    with open(file, 'r') as f:
-        return f.read()
+def draw_title(file1, file2):
+    title = "\033[1;7m Simple File Diff \033[0m"
+    print(title.center(os.get_terminal_size().columns))
 
-def draw_title(stdscr, file1, file2):
-    title = f'Comparing {file1} and {file2}'
-    stdscr.addstr(1, 2, " Simple File Diff ", curses.A_STANDOUT | curses.A_BOLD)
-    stdscr.addstr(2, 2, title, curses.A_BOLD)
+    title = f'\033[1mComparing {file1} and {file2}\033[0m\n'
+    print(title.center(os.get_terminal_size().columns))
 
-def draw_diff(stdscr, file1, file2):
-    draw_title(stdscr, args.file1, args.file2)
+    title = f"{file1:^{screen_width//2}}{file2:^{screen_width//2}}"
+    color_start = '\033[1;4;12m'
+    color_end = '\033[0m'
+    print(f"{color_start}{title}{color_end}")
 
-    file1_lines = file1.splitlines()
-    file2_lines = file2.splitlines()
+def draw_diff(content1, content2):
+    #
+    # How this diff comparison works:
+    # Hours wasted here: 2
+    #
+    # This function should: show both files side by side with its line number
+    # highlight when new lines are added or removed, in a different color if added or removed
+    # highlight when lines are different, in a different color if added or removed
+    #
+    # All of it without using any external library or tool, just print statements
+    #    
 
-    # first we draw both files side by side
-    for i, (line1, line2) in enumerate(zip(file1_lines, file2_lines)):
-        lineNum = i + 1
+    lines1 = content1.split('\n')
+    lines2 = content2.split('\n')
 
-        width = curses.COLS // 2 + 6
+    max_lines = max(len(lines1), len(lines2))
 
-        stdscr.addstr(i+4, 2, f'{lineNum:3} \u2502 {line1}') 
-        stdscr.addstr(i+4, width, f'{lineNum:3} \u2502 {line2}')
-        
-    # Updated line: RGB(255, 255, 204) or #FFFFCC
-    # Added line: RGB(214, 255, 214) or #D6FFD6
-    # Deleted line: RGB(255, 229, 229) or #FFE5E5
+    # first im gonna add all the missing lines to the shorter file
+    if len(lines1) < len(lines2):
+        for i in range(len(lines2) - len(lines1)):
+            lines1.append('')
+    elif len(lines1) > len(lines2):
+        for i in range(len(lines1) - len(lines2)):
+            lines2.append('')
 
-    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    for i in range(max_lines):
+        if lines1[i] != lines2[i]:
+            pass
+        else:
+            # simply print the line
+            color = ''
+            content_file1 = f"{i+1:<4}|  {lines1[i]}"
+            space = (screen_width // 2) - len(content_file1)
+            content_file2 = f"{i+1:<4}|  {lines2[i]}"
 
-    # then we draw the differences
-    for i, (line1, line2) in enumerate(zip(file1_lines, file2_lines)):
-        if line1 != line2:
-            
-            stdscr.addstr(i+4, 0, ' ' * curses.COLS, curses.A_REVERSE | curses.color_pair(1) | curses.A_BOLD) 
-            stdscr.addstr(i+4, 0, f'{i+1:3} \u2502 {line1}', curses.A_REVERSE | curses.color_pair(1) | curses.A_BOLD)
-            stdscr.addstr(i+4, width, f'{i+1:3} \u2502 {line2}', curses.A_REVERSE | curses.color_pair(1) | curses.A_BOLD)
+            content = f"{content_file1}{' '*space}{content_file2}"
+            print(f"{color}{content}")
 
-def main(stdscr):
-    stdscr.clear()
+def main():
+    parser = argparse.ArgumentParser(
+        prog='Simple File Diff',
+    )
 
-    curses.curs_set(0)
+    parser.add_argument('file1', help='The first file to compare')
+    parser.add_argument('file2', help='The second file to compare')
+    args = parser.parse_args()
 
-    if not check_file(args.file1) or not check_file(args.file2):
+    if not (check_file(args.file1) and check_file(args.file2)):
+        print("Error: One or more files do not exist.")
         exit(1)
+
+    file1_name = os.path.basename(args.file1)
+    file2_name = os.path.basename(args.file2)
 
     file1_content = read_file(args.file1)
     file2_content = read_file(args.file2)
 
-    draw_diff(stdscr, file1_content, file2_content)
+    draw_title(file1_name, file2_name)
+    draw_diff(file1_content, file2_content)
 
-    stdscr.refresh()
-    stdscr.getch()
-
-curses.wrapper(main)
+if __name__ == '__main__':
+    main()
